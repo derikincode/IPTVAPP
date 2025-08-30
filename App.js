@@ -10,6 +10,8 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 // Importar as telas
 import HomeScreen from './src/screens/HomeScreen';
 import ChannelsScreen from './src/screens/ChannelsScreen';
+import MoviesScreen from './src/screens/MoviesScreen';
+import SeriesScreen from './src/screens/SeriesScreen';
 import PlayerScreen from './src/screens/PlayerScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import SetupScreen from './src/screens/SetupScreen';
@@ -29,6 +31,10 @@ function TabNavigator() {
             iconName = focused ? 'home' : 'home-outline';
           } else if (route.name === 'Channels') {
             iconName = focused ? 'tv' : 'tv-outline';
+          } else if (route.name === 'Movies') {
+            iconName = focused ? 'film' : 'film-outline';
+          } else if (route.name === 'Series') {
+            iconName = focused ? 'library' : 'library-outline';
           } else if (route.name === 'Settings') {
             iconName = focused ? 'settings' : 'settings-outline';
           }
@@ -49,6 +55,8 @@ function TabNavigator() {
     >
       <Tab.Screen name="Home" component={HomeScreen} options={{ title: 'Início' }} />
       <Tab.Screen name="Channels" component={ChannelsScreen} options={{ title: 'Canais' }} />
+      <Tab.Screen name="Movies" component={MoviesScreen} options={{ title: 'Filmes' }} />
+      <Tab.Screen name="Series" component={SeriesScreen} options={{ title: 'Séries' }} />
       <Tab.Screen name="Settings" component={SettingsScreen} options={{ title: 'Configurações' }} />
     </Tab.Navigator>
   );

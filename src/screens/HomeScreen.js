@@ -18,13 +18,21 @@ const HomeScreen = ({ navigation }) => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [recentChannels, setRecentChannels] = useState([]);
+  const [recentMovies, setRecentMovies] = useState([]);
+  const [recentSeries, setRecentSeries] = useState([]);
   const [favoriteChannels, setFavoriteChannels] = useState([]);
+  const [favoriteMovies, setFavoriteMovies] = useState([]);
+  const [favoriteSeries, setFavoriteSeries] = useState([]);
   const [totalChannelsCount, setTotalChannelsCount] = useState(0);
 
   useEffect(() => {
     loadChannels();
     loadRecentChannels();
+    loadRecentMovies();
+    loadRecentSeries();
     loadFavoriteChannels();
+    loadFavoriteMovies();
+    loadFavoriteSeries();
     loadTotalCount();
   }, []);
 
@@ -38,12 +46,6 @@ const HomeScreen = ({ navigation }) => {
       console.error('Erro ao carregar contagem total:', error);
     }
   };
-
-  useEffect(() => {
-    loadChannels();
-    loadRecentChannels();
-    loadFavoriteChannels();
-  }, []);
 
   const loadChannels = async () => {
     try {
@@ -110,6 +112,28 @@ const HomeScreen = ({ navigation }) => {
     }
   };
 
+  const loadRecentMovies = async () => {
+    try {
+      const recent = await AsyncStorage.getItem('recent_movies');
+      if (recent) {
+        setRecentMovies(JSON.parse(recent));
+      }
+    } catch (error) {
+      console.error('Erro ao carregar filmes recentes:', error);
+    }
+  };
+
+  const loadRecentSeries = async () => {
+    try {
+      const recent = await AsyncStorage.getItem('recent_series');
+      if (recent) {
+        setRecentSeries(JSON.parse(recent));
+      }
+    } catch (error) {
+      console.error('Erro ao carregar séries recentes:', error);
+    }
+  };
+
   const loadFavoriteChannels = async () => {
     try {
       const favorites = await AsyncStorage.getItem('favorite_channels');
@@ -118,6 +142,28 @@ const HomeScreen = ({ navigation }) => {
       }
     } catch (error) {
       console.error('Erro ao carregar favoritos:', error);
+    }
+  };
+
+  const loadFavoriteMovies = async () => {
+    try {
+      const favorites = await AsyncStorage.getItem('favorite_movies');
+      if (favorites) {
+        setFavoriteMovies(JSON.parse(favorites));
+      }
+    } catch (error) {
+      console.error('Erro ao carregar filmes favoritos:', error);
+    }
+  };
+
+  const loadFavoriteSeries = async () => {
+    try {
+      const favorites = await AsyncStorage.getItem('favorite_series');
+      if (favorites) {
+        setFavoriteSeries(JSON.parse(favorites));
+      }
+    } catch (error) {
+      console.error('Erro ao carregar séries favoritas:', error);
     }
   };
 
@@ -221,7 +267,7 @@ const HomeScreen = ({ navigation }) => {
 
       {recentChannels.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Assistidos Recentemente</Text>
+          <Text style={styles.sectionTitle}>Canais Assistidos Recentemente</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.horizontalList}>
               {recentChannels.slice(0, 10).map(renderChannelItem)}
@@ -230,12 +276,56 @@ const HomeScreen = ({ navigation }) => {
         </View>
       )}
 
+      {recentMovies.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Filmes Assistidos Recentemente</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.horizontalList}>
+              {recentMovies.slice(0, 10).map(renderChannelItem)}
+            </View>
+          </ScrollView>
+        </View>
+      )}
+
+      {recentSeries.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Séries Assistidas Recentemente</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.horizontalList}>
+              {recentSeries.slice(0, 10).map(renderChannelItem)}
+            </View>
+          </ScrollView>
+        </View>
+      )}
+
       {favoriteChannels.length > 0 && (
         <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Favoritos</Text>
+          <Text style={styles.sectionTitle}>Canais Favoritos</Text>
           <ScrollView horizontal showsHorizontalScrollIndicator={false}>
             <View style={styles.horizontalList}>
               {favoriteChannels.slice(0, 10).map(renderChannelItem)}
+            </View>
+          </ScrollView>
+        </View>
+      )}
+
+      {favoriteMovies.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Filmes Favoritos</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.horizontalList}>
+              {favoriteMovies.slice(0, 10).map(renderChannelItem)}
+            </View>
+          </ScrollView>
+        </View>
+      )}
+
+      {favoriteSeries.length > 0 && (
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Séries Favoritas</Text>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+            <View style={styles.horizontalList}>
+              {favoriteSeries.slice(0, 10).map(renderChannelItem)}
             </View>
           </ScrollView>
         </View>
@@ -249,24 +339,32 @@ const HomeScreen = ({ navigation }) => {
               style={styles.categoryCard}
               onPress={() => navigation.navigate('Channels')}
             >
-              <Ionicons name="football" size={32} color="#FF6B35" />
-              <Text style={styles.categoryCardText}>Esportes</Text>
+              <Ionicons name="tv" size={32} color="#007AFF" />
+              <Text style={styles.categoryCardText}>Canais TV</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.categoryCard}
-              onPress={() => navigation.navigate('Channels')}
+              onPress={() => navigation.navigate('Movies')}
             >
-              <Ionicons name="film" size={32} color="#7B68EE" />
+              <Ionicons name="film" size={32} color="#FF6B35" />
               <Text style={styles.categoryCardText}>Filmes</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
               style={styles.categoryCard}
+              onPress={() => navigation.navigate('Series')}
+            >
+              <Ionicons name="library" size={32} color="#7B68EE" />
+              <Text style={styles.categoryCardText}>Séries</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.categoryCard}
               onPress={() => navigation.navigate('Channels')}
             >
-              <Ionicons name="tv" size={32} color="#32CD32" />
-              <Text style={styles.categoryCardText}>Séries</Text>
+              <Ionicons name="football" size={32} color="#32CD32" />
+              <Text style={styles.categoryCardText}>Esportes</Text>
             </TouchableOpacity>
 
             <TouchableOpacity
@@ -290,18 +388,36 @@ const HomeScreen = ({ navigation }) => {
 
       <View style={styles.quickActions}>
         <TouchableOpacity
-          style={styles.actionButton}
+          style={[styles.actionButton, { borderColor: '#007AFF' }]}
           onPress={() => navigation.navigate('Channels')}
         >
-          <Ionicons name="list" size={24} color="#007AFF" />
-          <Text style={styles.actionText}>Todos os Canais</Text>
+          <Ionicons name="tv" size={24} color="#007AFF" />
+          <Text style={[styles.actionText, { color: '#007AFF' }]}>Canais</Text>
         </TouchableOpacity>
         
+        <TouchableOpacity
+          style={[styles.actionButton, { borderColor: '#FF6B35' }]}
+          onPress={() => navigation.navigate('Movies')}
+        >
+          <Ionicons name="film" size={24} color="#FF6B35" />
+          <Text style={[styles.actionText, { color: '#FF6B35' }]}>Filmes</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.actionButton, { borderColor: '#7B68EE' }]}
+          onPress={() => navigation.navigate('Series')}
+        >
+          <Ionicons name="library" size={24} color="#7B68EE" />
+          <Text style={[styles.actionText, { color: '#7B68EE' }]}>Séries</Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.quickActions}>        
         <TouchableOpacity
           style={styles.actionButton}
           onPress={() => navigation.navigate('Settings')}
         >
-          <Ionicons name="settings" size={24} color="#007AFF" />
+          <Ionicons name="settings" size={24} color="#666" />
           <Text style={styles.actionText}>Configurações</Text>
         </TouchableOpacity>
       </View>
@@ -384,7 +500,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     justifyContent: 'space-around',
     paddingHorizontal: 20,
-    marginVertical: 20,
+    marginVertical: 10,
   },
   actionButton: {
     backgroundColor: '#2a2a2a',
@@ -392,7 +508,9 @@ const styles = StyleSheet.create({
     padding: 20,
     alignItems: 'center',
     flex: 1,
-    marginHorizontal: 10,
+    marginHorizontal: 5,
+    borderWidth: 2,
+    borderColor: '#444',
   },
   actionText: {
     color: '#fff',

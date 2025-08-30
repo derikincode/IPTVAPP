@@ -14,26 +14,26 @@ import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import xtreamService from '../services/XtreamService';
 
-const ChannelsScreen = ({ navigation }) => {
-  const [channels, setChannels] = useState([]);
-  const [channelCategories, setChannelCategories] = useState([]);
+const SeriesScreen = ({ navigation }) => {
+  const [series, setSeries] = useState([]);
+  const [seriesCategories, setSeriesCategories] = useState([]);
   const [filteredCategories, setFilteredCategories] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState(null);
-  const [channelsInCategory, setChannelsInCategory] = useState([]);
+  const [seriesInCategory, setSeriesInCategory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
-  const [favoriteChannels, setFavoriteChannels] = useState([]);
-  const [totalChannelsCount, setTotalChannelsCount] = useState(0);
+  const [favoriteSeries, setFavoriteSeries] = useState([]);
+  const [totalSeriesCount, setTotalSeriesCount] = useState(0);
   const [isXtreamMode, setIsXtreamMode] = useState(false);
 
   useEffect(() => {
     initializeScreen();
-    loadFavoriteChannels();
+    loadFavoriteSeries();
   }, []);
 
   useEffect(() => {
     filterCategories();
-  }, [channelCategories, searchQuery]);
+  }, [seriesCategories, searchQuery]);
 
   const initializeScreen = async () => {
     try {
@@ -43,27 +43,27 @@ const ChannelsScreen = ({ navigation }) => {
         setIsXtreamMode(true);
         const initialized = await xtreamService.init();
         if (initialized) {
-          await loadChannelsFromXtream();
+          await loadSeriesFromXtream();
         } else {
           Alert.alert('Erro', 'Não foi possível conectar ao Xtream Codes');
           setLoading(false);
         }
       } else {
         setIsXtreamMode(false);
-        await loadChannelsFromM3u();
+        await loadSeriesFromM3u();
       }
     } catch (error) {
-      console.error('Erro ao inicializar tela de canais:', error);
+      console.error('Erro ao inicializar tela de séries:', error);
       setLoading(false);
     }
   };
 
-  const loadChannelsFromXtream = async () => {
+  const loadSeriesFromXtream = async () => {
     try {
-      console.log('📺 Carregando canais ao vivo do Xtream Codes...');
+      console.log('📺 Carregando séries do Xtream Codes...');
       
-      // Buscar categorias de canais ao vivo
-      const categoriesResult = await xtreamService.getContent('live_categories');
+      // Buscar categorias de séries
+      const categoriesResult = await xtreamService.getContent('series_categories');
       
       if (categoriesResult.success) {
         console.log('📁 Categorias encontradas:', categoriesResult.categories.length);
@@ -72,43 +72,43 @@ const ChannelsScreen = ({ navigation }) => {
         const organizedCategories = categoriesResult.categories.map(cat => ({
           id: cat.id,
           name: cat.name,
-          type: 'live',
-          channelCount: 0 // Será preenchido quando carregar os canais
+          type: 'series',
+          seriesCount: 0 // Será preenchido quando carregar as séries
         }));
         
-        setChannelCategories(organizedCategories);
+        setSeriesCategories(organizedCategories);
         
-        // Buscar todos os canais para contagem
-        const allChannelsResult = await xtreamService.getContent('live_streams');
+        // Buscar todas as séries para contagem
+        const allSeriesResult = await xtreamService.getContent('series');
         
-        if (allChannelsResult.success) {
-          console.log('📺 Total de canais:', allChannelsResult.channels.length);
-          setTotalChannelsCount(allChannelsResult.channels.length);
-          setChannels(allChannelsResult.channels);
+        if (allSeriesResult.success) {
+          console.log('📺 Total de séries:', allSeriesResult.series.length);
+          setTotalSeriesCount(allSeriesResult.series.length);
+          setSeries(allSeriesResult.series);
           
-          // Contar canais por categoria
+          // Contar séries por categoria
           const categoriesWithCount = organizedCategories.map(cat => {
-            const count = allChannelsResult.channels.filter(channel => 
-              channel.group === cat.name
+            const count = allSeriesResult.series.filter(serie => 
+              serie.group === cat.name
             ).length;
-            return { ...cat, channelCount: count };
+            return { ...cat, seriesCount: count };
           });
           
-          setChannelCategories(categoriesWithCount);
+          setSeriesCategories(categoriesWithCount);
         }
       } else {
         throw new Error(categoriesResult.error || 'Erro ao buscar categorias');
       }
     } catch (error) {
-      console.error('Erro ao carregar canais do Xtream:', error);
-      Alert.alert('Erro', 'Não foi possível carregar os canais: ' + error.message);
+      console.error('Erro ao carregar séries do Xtream:', error);
+      Alert.alert('Erro', 'Não foi possível carregar as séries: ' + error.message);
     } finally {
       setLoading(false);
     }
   };
 
-  const loadChannelsFromM3u = async () => {
-    // Fallback para modo M3U
+  const loadSeriesFromM3u = async () => {
+    // Fallback para modo M3U (código anterior adaptado)
     try {
       const m3uUrl = await AsyncStorage.getItem('m3u_url');
       if (!m3uUrl) {
@@ -116,39 +116,43 @@ const ChannelsScreen = ({ navigation }) => {
         return;
       }
 
-      console.log('📺 Carregando canais do M3U...');
+      console.log('📺 Carregando séries do M3U...');
       const response = await fetch(m3uUrl);
       const content = await response.text();
       const allChannels = parseM3U(content);
       
-      // Filtrar canais de TV (excluindo VOD)
-      const tvChannels = allChannels.filter(channel => isLiveTvChannel(channel));
+      // Filtrar séries usando a lógica anterior
+      const seriesChannels = allChannels.filter(channel => isVodSeries(channel));
       
-      setChannels(tvChannels);
-      setTotalChannelsCount(tvChannels.length);
+      setSeries(seriesChannels);
+      setTotalSeriesCount(seriesChannels.length);
       
       // Organizar por grupos
-      const groupedChannels = organizeChannelsByGroups(tvChannels);
-      setChannelCategories(groupedChannels);
+      const groupedSeries = organizeSeriesByGroups(seriesChannels);
+      setSeriesCategories(groupedSeries);
       
     } catch (error) {
-      console.error('Erro ao carregar canais do M3U:', error);
+      console.error('Erro ao carregar séries do M3U:', error);
     } finally {
       setLoading(false);
     }
   };
 
-  const isLiveTvChannel = (channel) => {
+  const isVodSeries = (channel) => {
     const name = channel.name.toLowerCase();
     const group = (channel.group || '').toLowerCase();
     
-    // Excluir VOD
-    const vodKeywords = ['filme', 'movie', 'serie', 'temporada', 'season', 'lançamento'];
-    const isVod = vodKeywords.some(keyword => 
+    const seriesKeywords = ['serie', 'temporada', 's01', 'e01', 'season', 'episode'];
+    const isSeries = seriesKeywords.some(keyword => 
       name.includes(keyword) || group.includes(keyword)
     );
     
-    return !isVod;
+    const movieKeywords = ['filme', 'movie', 'cinema', 'lançamento'];
+    const isMovie = movieKeywords.some(keyword => 
+      name.includes(keyword) || group.includes(keyword)
+    );
+    
+    return isSeries && !isMovie;
   };
 
   const parseM3U = (content) => {
@@ -167,10 +171,10 @@ const ChannelsScreen = ({ navigation }) => {
         const groupMatch = info.match(/group-title="([^"]+)"/i);
         
         currentChannel = {
-          id: `channel_${channelIndex}_${Date.now()}`,
-          name: nameMatch ? nameMatch[1].trim() : 'Canal sem nome',
+          id: `series_${channelIndex}_${Date.now()}`,
+          name: nameMatch ? nameMatch[1].trim() : 'Série sem nome',
           logo: logoMatch ? logoMatch[1] : null,
-          group: groupMatch ? groupMatch[1] : 'Canais',
+          group: groupMatch ? groupMatch[1] : 'Séries',
         };
         channelIndex++;
       } else if (line.startsWith('http')) {
@@ -185,42 +189,42 @@ const ChannelsScreen = ({ navigation }) => {
     return channels;
   };
 
-  const organizeChannelsByGroups = (channels) => {
+  const organizeSeriesByGroups = (series) => {
     const groups = {};
     
-    channels.forEach(channel => {
-      const groupName = channel.group || 'Canais Diversos';
+    series.forEach(serie => {
+      const groupName = serie.group || 'Séries Diversas';
       
       if (!groups[groupName]) {
         groups[groupName] = {
           id: groupName,
           name: groupName,
-          channelCount: 0
+          seriesCount: 0
         };
       }
       
-      groups[groupName].channelCount++;
+      groups[groupName].seriesCount++;
     });
 
-    return Object.values(groups).sort((a, b) => b.channelCount - a.channelCount);
+    return Object.values(groups).sort((a, b) => b.seriesCount - a.seriesCount);
   };
 
-  const loadFavoriteChannels = async () => {
+  const loadFavoriteSeries = async () => {
     try {
-      const favorites = await AsyncStorage.getItem('favorite_channels');
+      const favorites = await AsyncStorage.getItem('favorite_series');
       if (favorites) {
-        setFavoriteChannels(JSON.parse(favorites));
+        setFavoriteSeries(JSON.parse(favorites));
       }
     } catch (error) {
-      console.error('Erro ao carregar canais favoritos:', error);
+      console.error('Erro ao carregar séries favoritas:', error);
     }
   };
 
   const filterCategories = () => {
-    let filtered = channelCategories;
+    let filtered = seriesCategories;
 
     if (searchQuery.trim()) {
-      filtered = channelCategories.filter(category =>
+      filtered = seriesCategories.filter(category =>
         category.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
@@ -234,37 +238,37 @@ const ChannelsScreen = ({ navigation }) => {
     
     try {
       if (isXtreamMode) {
-        // Buscar canais da categoria específica via Xtream API
-        const result = await xtreamService.getContent('live_streams', category.id);
+        // Buscar séries da categoria específica via Xtream API
+        const result = await xtreamService.getContent('series', category.id);
         
         if (result.success) {
-          let channelsToShow = result.channels;
+          let seriesToShow = result.series;
           
           if (searchQuery.trim()) {
-            channelsToShow = result.channels.filter(channel =>
-              channel.name.toLowerCase().includes(searchQuery.toLowerCase())
+            seriesToShow = result.series.filter(serie =>
+              serie.name.toLowerCase().includes(searchQuery.toLowerCase())
             );
           }
           
-          setChannelsInCategory(channelsToShow);
+          setSeriesInCategory(seriesToShow);
         } else {
-          Alert.alert('Erro', 'Não foi possível carregar os canais da categoria');
+          Alert.alert('Erro', 'Não foi possível carregar as séries da categoria');
         }
       } else {
-        // Modo M3U - filtrar canais por grupo
-        let channelsToShow = channels.filter(channel => channel.group === category.name);
+        // Modo M3U - filtrar séries por grupo
+        let seriesToShow = series.filter(serie => serie.group === category.name);
         
         if (searchQuery.trim()) {
-          channelsToShow = channelsToShow.filter(channel =>
-            channel.name.toLowerCase().includes(searchQuery.toLowerCase())
+          seriesToShow = seriesToShow.filter(serie =>
+            serie.name.toLowerCase().includes(searchQuery.toLowerCase())
           );
         }
         
-        setChannelsInCategory(channelsToShow);
+        setSeriesInCategory(seriesToShow);
       }
     } catch (error) {
       console.error('Erro ao carregar categoria:', error);
-      Alert.alert('Erro', 'Não foi possível carregar os canais');
+      Alert.alert('Erro', 'Não foi possível carregar as séries');
     } finally {
       setLoading(false);
     }
@@ -272,63 +276,98 @@ const ChannelsScreen = ({ navigation }) => {
 
   const goBackToCategories = () => {
     setSelectedCategory(null);
-    setChannelsInCategory([]);
+    setSeriesInCategory([]);
   };
 
   const getGroupIcon = (groupName) => {
     const name = groupName.toLowerCase();
     
-    // Ícones específicos por tipo de canal
-    if (name.includes('sport') || name.includes('esport') || name.includes('futebol')) return 'football';
-    if (name.includes('news') || name.includes('notíc') || name.includes('jornalismo')) return 'newspaper';
-    if (name.includes('music') || name.includes('música')) return 'musical-notes';
-    if (name.includes('kids') || name.includes('infantil') || name.includes('cartoon')) return 'happy';
-    if (name.includes('movie') || name.includes('cinema') || name.includes('filme')) return 'film';
-    if (name.includes('discovery') || name.includes('documentary') || name.includes('documentário')) return 'library';
-    if (name.includes('religious') || name.includes('religios') || name.includes('gospel')) return 'home';
-    if (name.includes('international') || name.includes('usa') || name.includes('uk')) return 'globe';
-    if (name.includes('premium') || name.includes('hbo') || name.includes('max')) return 'star';
-    if (name.includes('abertos') || name.includes('tv aberta')) return 'tv';
-    if (name.includes('fechados') || name.includes('por assinatura')) return 'lock-closed';
-    if (name.includes('variedades') || name.includes('entretenimento')) return 'sparkles';
-    if (name.includes('cultura') || name.includes('educativo')) return 'school';
-    if (name.includes('brasil') || name.includes('nacional')) return 'flag';
+    // Ícones baseados em plataformas
+    if (name.includes('netflix')) return 'tv';
+    if (name.includes('hbo') || name.includes('max')) return 'star';
+    if (name.includes('disney')) return 'happy';
+    if (name.includes('amazon') || name.includes('prime')) return 'storefront';
+    if (name.includes('apple')) return 'logo-apple';
+    if (name.includes('globo')) return 'globe';
     
-    return 'tv';
+    // Ícones baseados no gênero
+    if (name.includes('drama')) return 'sad';
+    if (name.includes('comédia') || name.includes('comedy')) return 'happy';
+    if (name.includes('ação') || name.includes('action')) return 'flash';
+    if (name.includes('thriller') || name.includes('suspense')) return 'eye';
+    if (name.includes('sci-fi') || name.includes('ficção')) return 'planet';
+    if (name.includes('horror') || name.includes('terror')) return 'skull';
+    if (name.includes('animação') || name.includes('animation')) return 'color-palette';
+    if (name.includes('romance')) return 'heart';
+    if (name.includes('crime') || name.includes('policial')) return 'shield';
+    if (name.includes('documentário')) return 'library';
+    if (name.includes('kids') || name.includes('infantil')) return 'happy';
+    if (name.includes('nacional') || name.includes('brasileiro')) return 'flag';
+    if (name.includes('internacional')) return 'globe';
+    if (name.includes('sitcom')) return 'chatbubbles';
+    if (name.includes('novela') || name.includes('soap')) return 'heart-circle';
+    if (name.includes('miniserie') || name.includes('minisserie')) return 'layers';
+    
+    return 'library';
   };
 
-  const toggleFavorite = async (channel) => {
+  const toggleFavorite = async (serie) => {
     try {
-      const isFavorite = favoriteChannels.some(fav => fav.id === channel.id);
+      const isFavorite = favoriteSeries.some(fav => fav.id === serie.id);
       let newFavorites;
 
       if (isFavorite) {
-        newFavorites = favoriteChannels.filter(fav => fav.id !== channel.id);
+        newFavorites = favoriteSeries.filter(fav => fav.id !== serie.id);
       } else {
-        newFavorites = [...favoriteChannels, channel];
+        newFavorites = [...favoriteSeries, serie];
       }
 
-      setFavoriteChannels(newFavorites);
-      await AsyncStorage.setItem('favorite_channels', JSON.stringify(newFavorites));
+      setFavoriteSeries(newFavorites);
+      await AsyncStorage.setItem('favorite_series', JSON.stringify(newFavorites));
     } catch (error) {
-      console.error('Erro ao salvar canal favorito:', error);
+      console.error('Erro ao salvar série favorita:', error);
       Alert.alert('Erro', 'Não foi possível salvar o favorito');
     }
   };
 
-  const playChannel = async (channel) => {
+  const playSeries = async (serie) => {
     try {
-      // Adicionar aos canais recentes
-      const recentChannels = await AsyncStorage.getItem('recent_channels');
-      const recent = recentChannels ? JSON.parse(recentChannels) : [];
-      const newRecent = [channel, ...recent.filter(c => c.id !== channel.id)].slice(0, 10);
-      await AsyncStorage.setItem('recent_channels', JSON.stringify(newRecent));
+      // Se for Xtream Codes, verificar se há múltiplos episódios
+      if (isXtreamMode && serie.type === 'series') {
+        // Buscar informações da série para mostrar episódios
+        const seriesInfo = await xtreamService.getSeriesInfo(serie.id);
+        
+        if (seriesInfo.success && seriesInfo.seriesInfo.seasonsCount > 0) {
+          // Navegar para tela de episódios (implementar depois)
+          Alert.alert(
+            'Série com Episódios',
+            `Esta série tem ${seriesInfo.seriesInfo.totalEpisodes} episódios em ${seriesInfo.seriesInfo.seasonsCount} temporadas.\n\nImplementar tela de episódios?`,
+            [
+              { text: 'OK', onPress: () => {
+                // Por enquanto, reproduzir o primeiro episódio da primeira temporada
+                const firstSeason = Object.keys(seriesInfo.seriesInfo.seasons)[0];
+                const firstEpisode = seriesInfo.seriesInfo.seasons[firstSeason][0];
+                if (firstEpisode) {
+                  navigation.navigate('Player', { channel: { ...serie, url: firstEpisode.url, name: firstEpisode.title } });
+                }
+              }}
+            ]
+          );
+          return;
+        }
+      }
+      
+      // Adicionar às séries recentes
+      const recentSeries = await AsyncStorage.getItem('recent_series');
+      const recent = recentSeries ? JSON.parse(recentSeries) : [];
+      const newRecent = [serie, ...recent.filter(s => s.id !== serie.id)].slice(0, 10);
+      await AsyncStorage.setItem('recent_series', JSON.stringify(newRecent));
       
       // Navegar para o player
-      navigation.navigate('Player', { channel });
+      navigation.navigate('Player', { channel: serie });
     } catch (error) {
-      console.error('Erro ao reproduzir canal:', error);
-      Alert.alert('Erro', 'Não foi possível reproduzir o canal');
+      console.error('Erro ao reproduzir série:', error);
+      Alert.alert('Erro', 'Não foi possível reproduzir a série');
     }
   };
 
@@ -338,15 +377,15 @@ const ChannelsScreen = ({ navigation }) => {
       onPress={() => openCategory(item)}
     >
       <View style={styles.categoryIcon}>
-        <Ionicons name={getGroupIcon(item.name)} size={24} color="#007AFF" />
+        <Ionicons name={getGroupIcon(item.name)} size={24} color="#7B68EE" />
       </View>
       
       <View style={styles.categoryInfo}>
         <Text style={styles.categoryName} numberOfLines={2}>
           {item.name}
         </Text>
-        <Text style={styles.categoryChannelCount}>
-          {item.channelCount} canais
+        <Text style={styles.categorySeriesCount}>
+          {item.seriesCount} séries
         </Text>
       </View>
 
@@ -354,36 +393,38 @@ const ChannelsScreen = ({ navigation }) => {
     </TouchableOpacity>
   );
 
-  const renderChannelItem = ({ item }) => {
-    const isFavorite = favoriteChannels.some(fav => fav.id === item.id);
+  const renderSeriesItem = ({ item }) => {
+    const isFavorite = favoriteSeries.some(fav => fav.id === item.id);
     
     return (
       <TouchableOpacity
-        style={styles.channelItem}
-        onPress={() => playChannel(item)}
+        style={styles.seriesItem}
+        onPress={() => playSeries(item)}
       >
-        <View style={styles.channelInfo}>
+        <View style={styles.seriesInfo}>
           {item.logo ? (
-            <Image source={{ uri: item.logo }} style={styles.channelLogo} />
+            <Image source={{ uri: item.logo }} style={styles.seriesLogo} />
           ) : (
-            <View style={styles.channelLogoPlaceholder}>
-              <Ionicons name="tv" size={24} color="#007AFF" />
+            <View style={styles.seriesLogoPlaceholder}>
+              <Ionicons name="library" size={24} color="#7B68EE" />
             </View>
           )}
           
-          <View style={styles.channelDetails}>
-            <Text style={styles.channelName} numberOfLines={2}>
+          <View style={styles.seriesDetails}>
+            <Text style={styles.seriesName} numberOfLines={2}>
               {item.name}
             </Text>
-            <Text style={styles.channelGroup}>{item.group}</Text>
-            <View style={styles.channelStatus}>
-              <View style={styles.liveIndicator} />
-              <Text style={styles.liveText}>AO VIVO</Text>
-            </View>
+            <Text style={styles.seriesGroup}>{item.group}</Text>
+            {item.year && (
+              <Text style={styles.seriesYear}>{item.year}</Text>
+            )}
+            {item.rating && (
+              <Text style={styles.seriesRating}>⭐ {item.rating}</Text>
+            )}
           </View>
         </View>
 
-        <View style={styles.channelActions}>
+        <View style={styles.seriesActions}>
           <TouchableOpacity
             style={styles.favoriteButton}
             onPress={() => toggleFavorite(item)}
@@ -397,9 +438,9 @@ const ChannelsScreen = ({ navigation }) => {
 
           <TouchableOpacity
             style={styles.playButton}
-            onPress={() => playChannel(item)}
+            onPress={() => playSeries(item)}
           >
-            <Ionicons name="play" size={20} color="#007AFF" />
+            <Ionicons name="play" size={20} color="#7B68EE" />
           </TouchableOpacity>
         </View>
       </TouchableOpacity>
@@ -409,9 +450,9 @@ const ChannelsScreen = ({ navigation }) => {
   if (loading && !selectedCategory) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color="#7B68EE" />
         <Text style={styles.loadingText}>
-          {isXtreamMode ? 'Carregando canais do Xtream Codes...' : 'Carregando canais...'}
+          {isXtreamMode ? 'Carregando séries do Xtream Codes...' : 'Carregando séries...'}
         </Text>
         <Text style={styles.loadingSubText}>
           {isXtreamMode ? 'Organizando por categorias' : 'Analisando lista M3U'}
@@ -426,7 +467,7 @@ const ChannelsScreen = ({ navigation }) => {
       <View style={styles.header}>
         {selectedCategory && (
           <TouchableOpacity style={styles.backButton} onPress={goBackToCategories}>
-            <Ionicons name="arrow-back" size={24} color="#007AFF" />
+            <Ionicons name="arrow-back" size={24} color="#7B68EE" />
             <Text style={styles.backButtonText}>Voltar</Text>
           </TouchableOpacity>
         )}
@@ -436,7 +477,7 @@ const ChannelsScreen = ({ navigation }) => {
             <Ionicons name="search" size={20} color="#666" style={styles.searchIcon} />
             <TextInput
               style={styles.searchInput}
-              placeholder={selectedCategory ? `Buscar em ${selectedCategory.name}...` : "Buscar canais ao vivo..."}
+              placeholder={selectedCategory ? `Buscar em ${selectedCategory.name}...` : "Buscar séries..."}
               placeholderTextColor="#666"
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -450,15 +491,15 @@ const ChannelsScreen = ({ navigation }) => {
         </View>
       </View>
 
-      {/* Lista de Categorias ou Canais */}
+      {/* Lista de Categorias ou Séries */}
       <View style={styles.contentContainer}>
         {!selectedCategory ? (
           // Mostrar lista de categorias
           <>
             <View style={styles.statsContainer}>
-              <Ionicons name="tv" size={20} color="#007AFF" />
+              <Ionicons name="library" size={20} color="#7B68EE" />
               <Text style={styles.statsText}>
-                {filteredCategories.length} categorias • {totalChannelsCount.toLocaleString()} canais ao vivo
+                {filteredCategories.length} categorias • {totalSeriesCount.toLocaleString()} séries
                 {isXtreamMode && <Text style={styles.xtreamBadge}> • Xtream API</Text>}
               </Text>
             </View>
@@ -466,14 +507,14 @@ const ChannelsScreen = ({ navigation }) => {
             <FlatList
               data={filteredCategories}
               renderItem={renderCategoryItem}
-              keyExtractor={(item, index) => `channel-category-${item.id || index}`}
+              keyExtractor={(item, index) => `series-category-${item.id || index}`}
               showsVerticalScrollIndicator={false}
               contentContainerStyle={styles.listContainer}
               ListEmptyComponent={
                 <View style={styles.emptyContainer}>
-                  <Ionicons name="tv-outline" size={64} color="#666" />
+                  <Ionicons name="library-outline" size={64} color="#666" />
                   <Text style={styles.emptyText}>
-                    {searchQuery ? 'Nenhuma categoria encontrada' : 'Nenhum canal disponível'}
+                    {searchQuery ? 'Nenhuma categoria encontrada' : 'Nenhuma série disponível'}
                   </Text>
                   {searchQuery && (
                     <Text style={styles.emptySubtext}>
@@ -485,34 +526,34 @@ const ChannelsScreen = ({ navigation }) => {
             />
           </>
         ) : (
-          // Mostrar canais da categoria selecionada
+          // Mostrar séries da categoria selecionada
           <>
             <View style={styles.statsContainer}>
-              <Ionicons name={getGroupIcon(selectedCategory.name)} size={20} color="#007AFF" />
+              <Ionicons name={getGroupIcon(selectedCategory.name)} size={20} color="#7B68EE" />
               <Text style={styles.statsText}>
-                {loading ? 'Carregando...' : `${channelsInCategory.length} canais em "${selectedCategory.name}"`}
+                {loading ? 'Carregando...' : `${seriesInCategory.length} séries em "${selectedCategory.name}"`}
               </Text>
             </View>
 
             {loading ? (
               <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#007AFF" />
-                <Text style={styles.loadingText}>Carregando canais da categoria...</Text>
+                <ActivityIndicator size="large" color="#7B68EE" />
+                <Text style={styles.loadingText}>Carregando séries da categoria...</Text>
               </View>
             ) : (
               <FlatList
-                data={channelsInCategory}
-                renderItem={renderChannelItem}
+                data={seriesInCategory}
+                renderItem={renderSeriesItem}
                 keyExtractor={(item) => item.id.toString()}
                 showsVerticalScrollIndicator={false}
                 contentContainerStyle={styles.listContainer}
                 ListEmptyComponent={
                   <View style={styles.emptyContainer}>
-                    <Ionicons name="tv-outline" size={64} color="#666" />
+                    <Ionicons name="library-outline" size={64} color="#666" />
                     <Text style={styles.emptyText}>
                       {searchQuery 
-                        ? `Nenhum canal encontrado em "${selectedCategory.name}"` 
-                        : `Nenhum canal disponível em "${selectedCategory.name}"`
+                        ? `Nenhuma série encontrada em "${selectedCategory.name}"` 
+                        : `Nenhuma série disponível em "${selectedCategory.name}"`
                       }
                     </Text>
                     {searchQuery && (
@@ -566,7 +607,7 @@ const styles = StyleSheet.create({
     paddingVertical: 10,
   },
   backButtonText: {
-    color: '#007AFF',
+    color: '#7B68EE',
     fontSize: 16,
     marginLeft: 5,
     fontWeight: '600',
@@ -610,7 +651,7 @@ const styles = StyleSheet.create({
     fontWeight: '600',
   },
   xtreamBadge: {
-    color: '#007AFF',
+    color: '#7B68EE',
     fontWeight: 'bold',
   },
   listContainer: {
@@ -624,7 +665,7 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 10,
     borderLeftWidth: 4,
-    borderLeftColor: '#007AFF',
+    borderLeftColor: '#7B68EE',
   },
   categoryIcon: {
     width: 50,
@@ -644,11 +685,11 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     marginBottom: 4,
   },
-  categoryChannelCount: {
+  categorySeriesCount: {
     color: '#666',
     fontSize: 14,
   },
-  channelItem: {
+  seriesItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -657,57 +698,50 @@ const styles = StyleSheet.create({
     padding: 15,
     marginBottom: 10,
   },
-  channelInfo: {
+  seriesInfo: {
     flexDirection: 'row',
     alignItems: 'center',
     flex: 1,
   },
-  channelLogo: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+  seriesLogo: {
+    width: 60,
+    height: 80,
+    borderRadius: 8,
     marginRight: 15,
   },
-  channelLogoPlaceholder: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+  seriesLogoPlaceholder: {
+    width: 60,
+    height: 80,
+    borderRadius: 8,
     backgroundColor: '#3a3a3a',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 15,
   },
-  channelDetails: {
+  seriesDetails: {
     flex: 1,
   },
-  channelName: {
+  seriesName: {
     color: '#fff',
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 4,
   },
-  channelGroup: {
+  seriesGroup: {
     color: '#666',
     fontSize: 14,
-    marginBottom: 4,
+    marginBottom: 2,
   },
-  channelStatus: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  liveIndicator: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#4CAF50',
-    marginRight: 6,
-  },
-  liveText: {
-    color: '#4CAF50',
+  seriesYear: {
+    color: '#7B68EE',
     fontSize: 12,
-    fontWeight: '600',
+    marginBottom: 2,
   },
-  channelActions: {
+  seriesRating: {
+    color: '#FFD700',
+    fontSize: 12,
+  },
+  seriesActions: {
     flexDirection: 'row',
     alignItems: 'center',
   },
@@ -716,7 +750,7 @@ const styles = StyleSheet.create({
     marginRight: 5,
   },
   playButton: {
-    backgroundColor: '#007AFF',
+    backgroundColor: '#7B68EE',
     padding: 8,
     borderRadius: 20,
   },
@@ -741,4 +775,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ChannelsScreen;
+export default SeriesScreen;
